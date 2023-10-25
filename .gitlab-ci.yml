@@ -1,0 +1,5 @@
+stages:
+  - build
+
+include: '/.gitlab/ci/build.yml'
+

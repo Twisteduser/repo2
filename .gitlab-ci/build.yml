@@ -1,0 +1,26 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  DOCKER_REGISTRY: $CI_REGISTRY
+  DOCKER_USERNAME: $CI_REGISTRY_USER
+  DOCKER_PASSWORD: $CI_REGISTRY_PASSWORD
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - name: docker:20.10.22-dind
+      command: [ "--mtu=1300" ]
+  before_script:
+    - timeout 120s sh -c 'until docker info; do sleep 1; done'
+    - echo "${DOCKER_PASSWORD:-}" | docker login -u "${DOCKER_USERNAME:-}" --password-stdin "${DOCKER_REGISTRY:-docker.io}"
+    - IMAGE_TAG="${DOCKER_REGISTRY}/${CI_PROJECT_PATH}:${CI_COMMIT_REF_NAME}"
+  script:
+    - |
+    - docker build --pull --tag "${IMAGE_TAG}" -f .gitlab-ci/Dockerfile .
+    - docker push "${IMAGE_TAG}"
+    - docker rmi "${IMAGE_TAG}"
+
